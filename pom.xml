@@ -21,6 +21,16 @@
             <groupId>com.github.mtakaki</groupId>
             <artifactId>dropwizard-hikaricp</artifactId>
             <version>0.0.2-SNAPSHOT</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>ch.qos.logback</groupId>
+                    <artifactId>logback-classic</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
@@ -44,7 +54,17 @@
         <dependency>
             <groupId>com.github.mtakaki</groupId>
             <artifactId>credential-storage-client</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
+            <version>0.0.1</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>ch.qos.logback</groupId>
+                    <artifactId>logback-classic</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- Dependency injection -->
@@ -88,8 +108,18 @@
         <dependency>
             <groupId>com.github.mtakaki</groupId>
             <artifactId>credential-storage</artifactId>
-            <version>0.0.2-SNAPSHOT</version>
+            <version>0.0.2</version>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>ch.qos.logback</groupId>
+                    <artifactId>logback-classic</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <!-- We need dropwizard testing library to spawn the service in the 
             integration test -->
@@ -163,24 +193,6 @@
                         </manifest>
                     </archive>
                 </configuration>
-            </plugin>
-            <!-- Creating bundled tarball including the fat JAR and config 
-                files. -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <configuration>
-                    <descriptor>src/assembly/bin.xml</descriptor>
-                    <finalName>bundled-${project.artifactId}-${project.version}</finalName>
-                </configuration>
-                <executions>
-                    <execution>
-                        <phase>package</phase>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>

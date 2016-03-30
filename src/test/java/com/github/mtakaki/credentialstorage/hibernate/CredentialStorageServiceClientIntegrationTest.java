@@ -179,7 +179,7 @@ public class CredentialStorageServiceClientIntegrationTest {
         final MetricRegistry metric = new MetricRegistry();
 
         try (Timer.Context context = metric.timer("timer").time()) {
-            final ExecutorService executorService = Executors.newFixedThreadPool(50);
+            final ExecutorService executorService = Executors.newFixedThreadPool(100);
             for (int i = 0; i < 50; i++) {
                 executorService.submit(() -> {
                     assertThat(this.client
@@ -189,15 +189,16 @@ public class CredentialStorageServiceClientIntegrationTest {
                             .get().getStatus()).isEqualTo(Status.OK.getStatusCode());
                 });
             }
-            assertThat(this.client
-                    .target(String.format("http://localhost:%d/test/28061",
-                            this.RULE.getLocalPort()))
-                    .request()
-                    .get().getStatus()).isEqualTo(Status.OK.getStatusCode());
-
+            for (int i = 0; i < 10; i++) {
+                assertThat(this.client
+                        .target(String.format("http://localhost:%d/test/wait",
+                                this.RULE.getLocalPort()))
+                        .request()
+                        .get().getStatus()).isEqualTo(Status.OK.getStatusCode());
+            }
             Thread.sleep(3000L);
 
-            for (int i = 0; i < 20; i++) {
+            for (int i = 0; i < 60; i++) {
                 executorService.submit(() -> {
                     assertThat(this.client
                             .target(String.format("http://localhost:%d/test/28061",

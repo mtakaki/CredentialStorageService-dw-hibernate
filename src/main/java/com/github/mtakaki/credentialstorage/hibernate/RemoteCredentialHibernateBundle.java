@@ -22,13 +22,12 @@ import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.datatype.hibernate4.Hibernate4Module;
 import com.github.mtakaki.credentialstorage.client.CredentialStorageServiceClient;
 import com.github.mtakaki.credentialstorage.client.model.Credential;
-import com.github.mtakaki.credentialstorage.hibernate.util.SessionHolders;
 import com.google.common.collect.ImmutableList;
 
 import io.dropwizard.Configuration;
 import io.dropwizard.ConfiguredBundle;
 import io.dropwizard.db.DatabaseConfiguration;
-import io.dropwizard.db.ManagedPooledDataSource;
+import io.dropwizard.db.ManagedDataSource;
 import io.dropwizard.db.PooledDataSourceFactory;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
@@ -48,7 +47,6 @@ public abstract class RemoteCredentialHibernateBundle<T extends Configuration>
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private final AtomicReference<SessionFactory> sessionFactory = new AtomicReference<>();
 
-    private T configuration;
     private Environment environment;
 
     private Credential credential;
@@ -56,7 +54,7 @@ public abstract class RemoteCredentialHibernateBundle<T extends Configuration>
 
     @Getter
     private SessionHolders sessionHolders;
-    private ManagedPooledDataSource dataSource;
+    private ManagedDataSource dataSource;
     private RemoteCredentialDataSourceFactory dataSourceFactory;
     private final ThreadLocal<SessionFactory> localSessionFactory = new ThreadLocal<>();
 
@@ -65,34 +63,28 @@ public abstract class RemoteCredentialHibernateBundle<T extends Configuration>
         this.sessionFactoryFactory = new SessionFactoryFactory();
     }
 
-    public SessionFactory getSessionFactory() {
-        this.dataSourceFactory = (RemoteCredentialDataSourceFactory) this
-                .getDataSourceFactory(this.configuration);
-        try {
-            this.client = new CredentialStorageServiceClient(
-                    new File(this.dataSourceFactory.getPrivateKeyFile()),
-                    new File(this.dataSourceFactory.getPublicKeyFile()),
-                    this.dataSourceFactory.getCredentialServiceURL(),
-                    this.dataSourceFactory.getCredentialClientConfiguration());
-            this.credential = this.client.getCredential();
-        } catch (NoSuchAlgorithmException | InvalidKeySpecException | IOException
-                | InvalidKeyException | NoSuchPaddingException | IllegalBlockSizeException
-                | BadPaddingException e) {
-            throw new RuntimeException("Failed to initialize credential storage client.", e);
-        }
-
-        this.createDataSourceAndSessionFactory(this.environment.metrics());
-        this.scheduleCredentialRetrieval(this.dataSourceFactory);
-        return this.sessionFactory.get();
+    /**
+     * Gets the {@link SessionFactory} and sets it to the local thread.
+     *
+     * @return The current {@link SessionFactory}.
+     */
+    public SessionFactory getDefaultSessionFactory() {
+        final SessionFactory sessionFactory = this.sessionFactory.get();
+        this.localSessionFactory.set(sessionFactory);
+        return sessionFactory;
     }
 
     private void createDataSourceAndSessionFactory(final MetricRegistry metricRegistry) {
-        //TODO Needs to create the ability to disable remote credential retrieval.
-        this.dataSourceFactory.setUser(this.credential.getPrimary());
-        this.dataSourceFactory.setPassword(
-                this.dataSourceFactory.getUser() != null && this.credential.getSecondary() == null
-                        ? ""
-                        : this.credential.getSecondary());
+        // The credential retrieval needs to be enabled to override the
+        // settings.
+        if (this.dataSourceFactory.isRetrieveCredentials()) {
+            this.dataSourceFactory.setUser(this.credential.getPrimary());
+            this.dataSourceFactory.setPassword(
+                    this.dataSourceFactory.getUser() != null
+                            && this.credential.getSecondary() == null
+                                    ? ""
+                                    : this.credential.getSecondary());
+        }
         this.dataSource = this.dataSourceFactory.build(metricRegistry,
                 this.name());
         try {
@@ -107,16 +99,8 @@ public abstract class RemoteCredentialHibernateBundle<T extends Configuration>
         this.sessionHolders = new SessionHolders(sessionFactory, this.dataSource);
     }
 
-    public SessionFactory getUpdatedSessionFactory() {
+    public SessionFactory getCurrentThreadSessionFactory() {
         return this.localSessionFactory.get();
-    }
-
-    public SessionFactory getLatestSessionFactory() {
-        return this.sessionFactory.get();
-    }
-
-    public void setLocalSessionFactory(final SessionFactory sessionFactory) {
-        this.localSessionFactory.set(sessionFactory);
     }
 
     private void scheduleCredentialRetrieval(
@@ -134,20 +118,23 @@ public abstract class RemoteCredentialHibernateBundle<T extends Configuration>
                     final SessionHolders oldSessionHolders = this.sessionHolders;
                     this.sessionHolders.setCloseSession(true);
 
-                    //TODO Need to figure out a way of registering the new datasource metrics.
-//                    this.dataSource.setMetricRegistry(null);
-                    this.createDataSourceAndSessionFactory(null);//this.environment.metrics());
+                    // TODO Need to figure out a way of registering the new
+                    // datasource metrics.
+                    // this.dataSource.setMetricRegistry(null);
+                    this.createDataSourceAndSessionFactory(this.environment.metrics());
 
                     // If there's no active connection at the moment we can
-                    // close the old connection right now.
+                    // close the old connection right now. New requests will
+                    // already use the new session factory.
                     if (oldSessionHolders.isEmpty()) {
                         oldSessionHolders.closeConnections();
                     }
                 }
             } catch (final Exception e) {
-                throw new RuntimeException("Failed to retrieve credentials.");
+                LOGGER.error("Failed to retrieve credentials. The credentials will not be updated.",
+                        e);
             }
-        } , 0L, dataSourceFactory.getRefreshFrequency(), TimeUnit.DAYS);
+        }, 0L, dataSourceFactory.getRefreshFrequency(), TimeUnit.DAYS);
     }
 
     @Override
@@ -172,12 +159,9 @@ public abstract class RemoteCredentialHibernateBundle<T extends Configuration>
 
     @Override
     public final void run(final T configuration, final Environment environment) throws Exception {
-        this.configuration = configuration;
         this.environment = environment;
 
         final PooledDataSourceFactory dbConfig = this.getDataSourceFactory(configuration);
-        // this.sessionFactory = this.sessionFactoryFactory.build(this,
-        // environment, dbConfig, this.entities, this.name());
         this.registerUnitOfWorkListerIfAbsent(environment).registerBundle(this.name(), this);
         environment.healthChecks().register(this.name(),
                 new SessionFactoryHealthCheck(
@@ -185,6 +169,31 @@ public abstract class RemoteCredentialHibernateBundle<T extends Configuration>
                         dbConfig.getValidationQueryTimeout().or(Duration.seconds(5)),
                         this.sessionFactory.get(),
                         dbConfig.getValidationQuery()));
+
+        this.dataSourceFactory = (RemoteCredentialDataSourceFactory) this
+                .getDataSourceFactory(configuration);
+        // If the feature is disabled we don't need to create the client and
+        // retrieve the credentials.
+        if (this.dataSourceFactory.isRetrieveCredentials()) {
+            try {
+                this.client = new CredentialStorageServiceClient(
+                        new File(this.dataSourceFactory.getPrivateKeyFile()),
+                        new File(this.dataSourceFactory.getPublicKeyFile()),
+                        this.dataSourceFactory.getCredentialServiceURL(),
+                        this.dataSourceFactory.getCredentialClientConfiguration());
+                this.credential = this.client.getCredential();
+            } catch (NoSuchAlgorithmException | InvalidKeySpecException | IOException
+                    | InvalidKeyException | NoSuchPaddingException | IllegalBlockSizeException
+                    | BadPaddingException e) {
+                throw new RuntimeException("Failed to initialize credential storage client.", e);
+            }
+        }
+        this.createDataSourceAndSessionFactory(this.environment.metrics());
+        // The scheduled credential retrieval is useless if the feature is
+        // disabled.
+        if (this.dataSourceFactory.isRetrieveCredentials()) {
+            this.scheduleCredentialRetrieval(this.dataSourceFactory);
+        }
     }
 
     private UnitOfWorkApplicationListener registerUnitOfWorkListerIfAbsent(

@@ -7,8 +7,6 @@ import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 import org.hibernate.context.internal.ManagedSessionContext;
 
-import com.github.mtakaki.credentialstorage.hibernate.util.SessionHolders;
-
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -45,8 +43,7 @@ public class UnitOfWorkAspect {
         }
         this.sessionHolders = this.bundle.getSessionHolders();
         this.sessionHolders.add(this);
-        this.sessionFactory = this.bundle.getLatestSessionFactory();
-        this.bundle.setLocalSessionFactory(this.sessionFactory);
+        this.sessionFactory = this.bundle.getDefaultSessionFactory();
         this.session = this.sessionFactory.openSession();
         try {
             this.configureSession();

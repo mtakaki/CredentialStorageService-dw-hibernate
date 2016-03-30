@@ -33,10 +33,11 @@ database:
   privateKeyFile: src/test/resources/private_key.der
   publicKeyFile: src/test/resources/public_key.der
   credentialServiceURL: https://credential-service.herokuapp.com/
-  refreshFrequency: 5s
+  refreshFrequency: 5
   credentialClientConfiguration:
     timeout: 1m
     connectionTimeout: 1m
+  #retrieveCredentials: false
 
 server:
   applicationConnectors:
