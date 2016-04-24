@@ -3,6 +3,7 @@ package com.github.mtakaki.credentialstorage.hibernate;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.hibernate.SessionFactory;
 import org.slf4j.Logger;
@@ -26,6 +27,8 @@ class SessionHolders {
     private static final Logger LOGGER = LoggerFactory.getLogger(SessionHolders.class);
 
     private final Set<UnitOfWorkAspect> unitOfWorks = Collections.synchronizedSet(new HashSet<>());
+    private final AtomicInteger sessionCounter = new AtomicInteger();
+
     private final SessionFactory sessionFactory;
     private final ManagedDataSource dataSource;
 
@@ -40,6 +43,7 @@ class SessionHolders {
      */
     public void add(final UnitOfWorkAspect unitOfWork) {
         this.unitOfWorks.add(unitOfWork);
+        this.sessionCounter.incrementAndGet();
     }
 
     /**
@@ -51,6 +55,8 @@ class SessionHolders {
      *            The unit of work that was using the database connection.
      */
     public synchronized void remove(final UnitOfWorkAspect unitOfWork) {
+        // TODO This method shouldn't be synchronized as every request will
+        // become serial in the end.
         this.unitOfWorks.remove(unitOfWork);
 
         if (this.closeSession && this.unitOfWorks.isEmpty()) {

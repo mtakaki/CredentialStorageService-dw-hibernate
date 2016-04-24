@@ -10,9 +10,11 @@ import org.hibernate.context.internal.ManagedSessionContext;
 import lombok.RequiredArgsConstructor;
 
 /**
- * An aspect providing operations around a method with the {@link UnitOfWork} annotation.
- * It opens a Hibernate session and optionally a transaction.
- * <p>It should be created for every invocation of the method.</p>
+ * An aspect providing operations around a method with the {@link UnitOfWork}
+ * annotation. It opens a Hibernate session and optionally a transaction.
+ * <p>
+ * It should be created for every invocation of the method.
+ * </p>
  */
 @RequiredArgsConstructor
 public class UnitOfWorkAspect {
@@ -34,16 +36,25 @@ public class UnitOfWorkAspect {
         this.bundle = this.bundles.get(unitOfWork.value());
         if (this.bundle == null) {
             // If the user didn't specify the name of a session factory,
-            // and we have only one registered, we can assume that it's the right one.
-            if (unitOfWork.value().equals(RemoteCredentialHibernateBundle.DEFAULT_NAME) && this.bundles.size() == 1) {
+            // and we have only one registered, we can assume that it's the
+            // right one.
+            if (unitOfWork.value().equals(RemoteCredentialHibernateBundle.DEFAULT_NAME)
+                    && this.bundles.size() == 1) {
                 this.bundle = this.bundles.values().iterator().next();
             } else {
-                throw new IllegalArgumentException("Unregistered Hibernate bundle: '" + unitOfWork.value() + "'");
+                throw new IllegalArgumentException(
+                        "Unregistered Hibernate bundle: '" + unitOfWork.value() + "'");
             }
         }
         this.sessionHolders = this.bundle.getSessionHolders();
         this.sessionHolders.add(this);
+
+        // We need to get the current session factory.
         this.sessionFactory = this.bundle.getDefaultSessionFactory();
+        // Now that we have the session factory we set it in a thread local so
+        // it's used by the BundleAbstractDAO.
+        this.bundle.setCurrentThreadSessionFactory(this.sessionFactory);
+
         this.session = this.sessionFactory.openSession();
         try {
             this.configureSession();

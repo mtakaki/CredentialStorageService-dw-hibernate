@@ -1,6 +1,7 @@
 # Status
 ![Build Status](https://codeship.com/projects/72c79650-d302-0133-dc29-6af7e052eb76/status?branch=master)
 [![Coverage Status](https://coveralls.io/repos/github/mtakaki/CredentialStorageService-dw-hibernate/badge.svg?branch=master)](https://coveralls.io/github/mtakaki/CredentialStorageService-dw-hibernate?branch=master)
+[![Codacy Badge](https://api.codacy.com/project/badge/grade/ba1c873a2e5b46a39c7fdda5e9002990)](https://www.codacy.com/app/mitsuotakaki/CredentialStorageService-dw-hibernate)
 [![Download](https://maven-badges.herokuapp.com/maven-central/com.github.mtakaki/dropwizard-credential-storage-hibernate/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.github.mtakaki/dropwizard-credential-storage-hibernate)
 [![Javadoc](https://javadoc-emblem.rhcloud.com/doc/com.github.mtakaki/CredentialStorageService-dw-hibernate/badge.svg)](http://www.javadoc.io/doc/com.github.mtakaki/CredentialStorageService-dw-hibernate)
 

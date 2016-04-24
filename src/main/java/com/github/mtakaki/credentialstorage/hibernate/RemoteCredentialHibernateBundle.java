@@ -1,6 +1,7 @@
 package com.github.mtakaki.credentialstorage.hibernate;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -15,8 +16,6 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 
 import org.hibernate.SessionFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.datatype.hibernate4.Hibernate4Module;
@@ -34,11 +33,11 @@ import io.dropwizard.setup.Environment;
 import io.dropwizard.util.Duration;
 
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public abstract class RemoteCredentialHibernateBundle<T extends Configuration>
         implements ConfiguredBundle<T>, DatabaseConfiguration<T> {
-    private static final Logger LOGGER = LoggerFactory
-            .getLogger(RemoteCredentialHibernateBundle.class);
     public static final String DEFAULT_NAME = "hibernate";
 
     private final ImmutableList<Class<?>> entities;
@@ -85,6 +84,9 @@ public abstract class RemoteCredentialHibernateBundle<T extends Configuration>
                                     ? ""
                                     : this.credential.getSecondary());
         }
+        // Unregister metrics to we can wire the new data source into it.
+        this.unregisterCurrentMetrics(metricRegistry);
+
         this.dataSource = this.dataSourceFactory.build(metricRegistry,
                 this.name());
         try {
@@ -99,20 +101,32 @@ public abstract class RemoteCredentialHibernateBundle<T extends Configuration>
         this.sessionHolders = new SessionHolders(sessionFactory, this.dataSource);
     }
 
+    private void unregisterCurrentMetrics(final MetricRegistry metricRegistry) {
+        metricRegistry.remove(MetricRegistry.name(this.name(), "pool", "TotalConnections"));
+        metricRegistry.remove(MetricRegistry.name(this.name(), "pool", "IdleConnections"));
+        metricRegistry.remove(MetricRegistry.name(this.name(), "pool", "ActiveConnections"));
+        metricRegistry.remove(MetricRegistry.name(this.name(), "pool", "PendingConnections"));
+    }
+
     public SessionFactory getCurrentThreadSessionFactory() {
         return this.localSessionFactory.get();
+//        return this.sessionFactory.get();
+    }
+
+    public void setCurrentThreadSessionFactory(final SessionFactory sessionFactory) {
+        this.localSessionFactory.set(sessionFactory);
     }
 
     private void scheduleCredentialRetrieval(
             final RemoteCredentialDataSourceFactory dataSourceFactory) {
         this.scheduler.scheduleAtFixedRate(() -> {
             try {
-                LOGGER.info("Retrieving credentials.");
+                log.info("Retrieving credentials.");
                 final Credential newCredential = this.client.getCredential();
                 // We only create a new connection if the credentials were
                 // updated.
                 if (!newCredential.equals(this.credential)) {
-                    LOGGER.info("Credentials updated. Creating new connection.");
+                    log.info("Credentials updated. Creating new connection.");
                     this.credential = newCredential;
 
                     final SessionHolders oldSessionHolders = this.sessionHolders;
@@ -131,10 +145,10 @@ public abstract class RemoteCredentialHibernateBundle<T extends Configuration>
                     }
                 }
             } catch (final Exception e) {
-                LOGGER.error("Failed to retrieve credentials. The credentials will not be updated.",
+                log.error("Failed to retrieve credentials. The credentials will not be updated.",
                         e);
             }
-        }, 0L, dataSourceFactory.getRefreshFrequency(), TimeUnit.DAYS);
+        }, 0L, dataSourceFactory.getRefreshFrequency(), TimeUnit.SECONDS);
     }
 
     @Override
@@ -176,11 +190,7 @@ public abstract class RemoteCredentialHibernateBundle<T extends Configuration>
         // retrieve the credentials.
         if (this.dataSourceFactory.isRetrieveCredentials()) {
             try {
-                this.client = new CredentialStorageServiceClient(
-                        new File(this.dataSourceFactory.getPrivateKeyFile()),
-                        new File(this.dataSourceFactory.getPublicKeyFile()),
-                        this.dataSourceFactory.getCredentialServiceURL(),
-                        this.dataSourceFactory.getCredentialClientConfiguration());
+                this.client = this.createCredentialClient();
                 this.credential = this.client.getCredential();
             } catch (NoSuchAlgorithmException | InvalidKeySpecException | IOException
                     | InvalidKeyException | NoSuchPaddingException | IllegalBlockSizeException
@@ -194,6 +204,30 @@ public abstract class RemoteCredentialHibernateBundle<T extends Configuration>
         if (this.dataSourceFactory.isRetrieveCredentials()) {
             this.scheduleCredentialRetrieval(this.dataSourceFactory);
         }
+    }
+
+    /**
+     * Creates the {@link CredentialStorageServiceClient} with the configuration
+     * stored under {@link RemoteCredentialDataSourceFactory}.
+     *
+     * @return A {@link CredentialStorageServiceClient}.
+     * @throws NoSuchAlgorithmException
+     *             Thrown if the encryption/decryption algorithm is not
+     *             available.
+     * @throws InvalidKeySpecException
+     *             If the private/public key are invalid.
+     * @throws FileNotFoundException
+     *             Thrown if the private/public key files were not available.
+     * @throws IOException
+     *             Thrown if the private/public key files could not be opened.
+     */
+    private CredentialStorageServiceClient createCredentialClient() throws NoSuchAlgorithmException,
+            InvalidKeySpecException, FileNotFoundException, IOException {
+        return new CredentialStorageServiceClient(
+                new File(this.dataSourceFactory.getPrivateKeyFile()),
+                new File(this.dataSourceFactory.getPublicKeyFile()),
+                this.dataSourceFactory.getCredentialServiceURL(),
+                this.dataSourceFactory.getCredentialClientConfiguration());
     }
 
     private UnitOfWorkApplicationListener registerUnitOfWorkListerIfAbsent(
