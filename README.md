@@ -93,7 +93,7 @@ database:
   privateKeyFile: src/test/resources/private_key.der
   publicKeyFile: src/test/resources/public_key.der
   credentialServiceURL: https://credential-service.herokuapp.com/
-  refreshFrequency: 7
+  refreshFrequency: 7 # days
   credentialClientConfiguration:
     timeout: 1m
     connectionTimeout: 1m
@@ -110,7 +110,7 @@ This is the credential service endpoint. It should be reachable by the server, b
 
 #### `refreshFrequency`
 
-This setting controls the frequency the credentials will be retrieved from the server. If there was any change in the credentials it will shutdown the existing connection (using the old credentials) and create a new one.
+Beware the unit is in *days* for this setting, as it doesn't make sense refreshing for updated credentials more than once per day. This setting controls the frequency the credentials will be retrieved from the server. If there was any change in the credentials it will shutdown the existing connection (using the old credentials) and create a new one.
 
 There's one caveat to this setting: this is relative to the server startup time. If you plan to have your server refreshing credentials every Monday (`refreshFrequency: 7`), but your server went down and rebooted on Thursday, your server will preserve the frequency and continue retrieving the credentials every 7 days after the server went up again.
 

@@ -147,7 +147,7 @@ public abstract class RemoteCredentialHibernateBundle<T extends Configuration>
                 log.error("Failed to retrieve credentials. The credentials will not be updated.",
                         e);
             }
-        }, 0L, dataSourceFactory.getRefreshFrequency(), TimeUnit.SECONDS);
+        }, 0L, dataSourceFactory.getRefreshFrequency(), TimeUnit.DAYS);
     }
 
     @Override
