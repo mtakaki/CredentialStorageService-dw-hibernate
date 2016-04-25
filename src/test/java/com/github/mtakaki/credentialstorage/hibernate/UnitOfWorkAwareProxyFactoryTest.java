@@ -56,12 +56,11 @@ public class UnitOfWorkAwareProxyFactoryTest {
         dataSourceFactory.setDriverClass("org.hsqldb.jdbcDriver");
         dataSourceFactory.setValidationQuery("SELECT 1 FROM INFORMATION_SCHEMA.SYSTEM_USERS");
         dataSourceFactory.setProperties(ImmutableMap.of("hibernate.dialect", "org.hibernate.dialect.HSQLDialect"));
-//        dataSourceFactory.setInitialSize(1);
         dataSourceFactory.setMinSize(1);
 
         this.sessionFactory = new SessionFactoryFactory()
                 .build(this.bundle, environment, dataSourceFactory, ImmutableList.<Class<?>>of(), RemoteCredentialHibernateBundle.DEFAULT_NAME);
-        when(this.bundle.getCurrentThreadSessionFactory()).thenReturn(this.sessionFactory);
+        when(this.bundle.getSessionFactory()).thenReturn(this.sessionFactory);
         final Session session = this.sessionFactory.openSession();
         try {
             session.createSQLQuery("create table user_sessions (token varchar(64) primary key, username varchar(16))")

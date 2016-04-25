@@ -17,7 +17,7 @@ public class BundleAbstractDAO<E> extends AbstractDAO<E> {
     private final RemoteCredentialHibernateBundle<?> bundle;
 
     public BundleAbstractDAO(final RemoteCredentialHibernateBundle<?> bundle) {
-        super(bundle.getDefaultSessionFactory());
+        super(bundle.getSessionFactory());
         this.bundle = bundle;
     }
 

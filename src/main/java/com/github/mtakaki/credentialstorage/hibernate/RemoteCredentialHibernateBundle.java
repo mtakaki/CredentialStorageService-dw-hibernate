@@ -67,7 +67,7 @@ public abstract class RemoteCredentialHibernateBundle<T extends Configuration>
      *
      * @return The current {@link SessionFactory}.
      */
-    public SessionFactory getDefaultSessionFactory() {
+    public SessionFactory getSessionFactory() {
         final SessionFactory sessionFactory = this.sessionFactory.get();
         this.localSessionFactory.set(sessionFactory);
         return sessionFactory;
@@ -110,7 +110,6 @@ public abstract class RemoteCredentialHibernateBundle<T extends Configuration>
 
     public SessionFactory getCurrentThreadSessionFactory() {
         return this.localSessionFactory.get();
-//        return this.sessionFactory.get();
     }
 
     public void setCurrentThreadSessionFactory(final SessionFactory sessionFactory) {
@@ -158,6 +157,8 @@ public abstract class RemoteCredentialHibernateBundle<T extends Configuration>
 
     /**
      * Override to configure the {@link Hibernate4Module}.
+     *
+     * @return The created {@link Hibernate4Module}.
      */
     protected Hibernate4Module createHibernate4Module() {
         return new Hibernate4Module();
@@ -166,6 +167,8 @@ public abstract class RemoteCredentialHibernateBundle<T extends Configuration>
     /**
      * Override to configure the name of the bundle (It's used for the bundle
      * health check and database pool metrics)
+     *
+     * @return The name of the bundle.
      */
     protected String name() {
         return DEFAULT_NAME;

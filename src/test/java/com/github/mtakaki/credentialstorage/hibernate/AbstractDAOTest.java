@@ -102,7 +102,7 @@ public class AbstractDAOTest {
 
     @Before
     public void setup() throws Exception {
-        when(this.bundle.getDefaultSessionFactory()).thenReturn(this.factory);
+        when(this.bundle.getSessionFactory()).thenReturn(this.factory);
         when(this.bundle.getCurrentThreadSessionFactory()).thenReturn(this.factory);
         when(this.factory.getCurrentSession()).thenReturn(this.session);
         when(this.session.createCriteria(String.class)).thenReturn(this.criteria);

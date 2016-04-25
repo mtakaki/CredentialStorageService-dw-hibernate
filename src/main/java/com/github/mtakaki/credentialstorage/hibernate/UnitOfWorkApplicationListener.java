@@ -16,13 +16,14 @@ import org.glassfish.jersey.server.monitoring.RequestEventListener;
 import org.hibernate.SessionFactory;
 
 /**
- * An application event listener that listens for Jersey application initialization to
- * be finished, then creates a map of resource method that have metrics annotations.
+ * An application event listener that listens for Jersey application
+ * initialization to be finished, then creates a map of resource method that
+ * have metrics annotations.
  *
- * Finally, it listens for method start events, and returns a {@link RequestEventListener}
- * that updates the relevant metric for suitably annotated methods when it gets the
- * request events indicating that the method is about to be invoked, or just got done
- * being invoked.
+ * Finally, it listens for method start events, and returns a
+ * {@link RequestEventListener} that updates the relevant metric for suitably
+ * annotated methods when it gets the request events indicating that the method
+ * is about to be invoked, or just got done being invoked.
  */
 @Provider
 public class UnitOfWorkApplicationListener implements ApplicationEventListener {
@@ -33,24 +34,29 @@ public class UnitOfWorkApplicationListener implements ApplicationEventListener {
     }
 
     /**
-     * Construct an application event listener using the given name and session factory.
+     * Construct an application event listener using the given name and session
+     * factory.
      *
-     * <p/>
      * When using this constructor, the {@link UnitOfWorkApplicationListener}
      * should be added to a Jersey {@code ResourceConfig} as a singleton.
      *
-     * @param name a name of a Hibernate bundle
-     * @param bundle a {@link SessionFactory}
+     * @param name
+     *            a name of a Hibernate bundle
+     * @param bundle
+     *            a {@link SessionFactory}
      */
-    public UnitOfWorkApplicationListener(final String name, final RemoteCredentialHibernateBundle<?> bundle) {
+    public UnitOfWorkApplicationListener(final String name,
+            final RemoteCredentialHibernateBundle<?> bundle) {
         this.registerBundle(name, bundle);
     }
 
     /**
      * Register a session factory with the given name.
      *
-     * @param name a name of a Hibernate bundle
-     * @param bundle a {@link SessionFactory}
+     * @param name
+     *            a name of a Hibernate bundle
+     * @param bundle
+     *            a {@link SessionFactory}
      */
     public void registerBundle(final String name, final RemoteCredentialHibernateBundle<?> bundle) {
         this.bundles.put(name, bundle);
@@ -61,7 +67,7 @@ public class UnitOfWorkApplicationListener implements ApplicationEventListener {
         private final UnitOfWorkAspect unitOfWorkAspect;
 
         public UnitOfWorkEventListener(final Map<Method, UnitOfWork> methodMap,
-                                       final Map<String, RemoteCredentialHibernateBundle<?>> sessionFactories) {
+                final Map<String, RemoteCredentialHibernateBundle<?>> sessionFactories) {
             this.methodMap = methodMap;
             this.unitOfWorkAspect = new UnitOfWorkAspect(sessionFactories);
         }
@@ -107,7 +113,8 @@ public class UnitOfWorkApplicationListener implements ApplicationEventListener {
     }
 
     private void registerUnitOfWorkAnnotations(final ResourceMethod method) {
-        UnitOfWork annotation = method.getInvocable().getDefinitionMethod().getAnnotation(UnitOfWork.class);
+        UnitOfWork annotation = method.getInvocable().getDefinitionMethod()
+                .getAnnotation(UnitOfWork.class);
 
         if (annotation == null) {
             annotation = method.getInvocable().getHandlingMethod().getAnnotation(UnitOfWork.class);

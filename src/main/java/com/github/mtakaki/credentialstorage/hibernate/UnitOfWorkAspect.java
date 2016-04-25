@@ -50,7 +50,7 @@ public class UnitOfWorkAspect {
         this.sessionHolders.add(this);
 
         // We need to get the current session factory.
-        this.sessionFactory = this.bundle.getDefaultSessionFactory();
+        this.sessionFactory = this.bundle.getSessionFactory();
         // Now that we have the session factory we set it in a thread local so
         // it's used by the BundleAbstractDAO.
         this.bundle.setCurrentThreadSessionFactory(this.sessionFactory);

@@ -124,7 +124,7 @@ public class JerseyIntegrationTest extends JerseyTest {
                 dbConfig,
                 ImmutableList.<Class<?>> of(Person.class),
                 RemoteCredentialHibernateBundle.DEFAULT_NAME);
-        when(this.bundle.getDefaultSessionFactory()).thenReturn(this.sessionFactory);
+        when(this.bundle.getSessionFactory()).thenReturn(this.sessionFactory);
         when(this.bundle.getCurrentThreadSessionFactory()).thenReturn(this.sessionFactory);
 
         final Session session = this.sessionFactory.openSession();

@@ -65,8 +65,8 @@ public class UnitOfWorkApplicationListenerTest {
 
         when(this.bundle.getSessionHolders()).thenReturn(sessionHolders);
         when(this.analyticsBundle.getSessionHolders()).thenReturn(sessionHolders);
-        when(this.bundle.getCurrentThreadSessionFactory()).thenReturn(this.sessionFactory);
-        when(this.analyticsBundle.getCurrentThreadSessionFactory())
+        when(this.bundle.getSessionFactory()).thenReturn(this.sessionFactory);
+        when(this.analyticsBundle.getSessionFactory())
                 .thenReturn(this.analyticsSessionFactory);
 
         when(this.sessionFactory.openSession()).thenReturn(this.session);
@@ -248,6 +248,8 @@ public class UnitOfWorkApplicationListenerTest {
 
     @Test
     public void beginsAndCommitsATransactionForAnalytics() throws Exception {
+        when(this.sessionFactory.openSession()).thenReturn(this.session);
+
         this.prepareAppEvent("methodWithUnitOfWorkOnAnalyticsDatabase");
         this.execute();
 
