@@ -1,0 +1,53 @@
+database:
+  # the name of your JDBC driver
+  driverClass: com.mysql.jdbc.Driver
+
+  # the JDBC URL
+  url: jdbc:mysql://127.0.0.1:3306/test?zeroDateTimeBehavior=convertToNull&autoReconnect=true
+
+  # any properties specific to your JDBC driver:
+  properties:
+    hibernate.connection.provider_class: org.hibernate.hikaricp.internal.HikariCPConnectionProvider
+    charSet: UTF-8
+    hibernate.dialect: org.hibernate.dialect.MySQLDialect
+    hibernate.show_sql: true
+    #hibernate.hbm2ddl.auto: update
+
+  # the maximum amount of time to wait on an empty pool before throwing an exception
+  maxWaitForConnection: 1s
+
+  # the SQL query to run when validating a connection's liveness
+  validationQuery: "/* MyApplication Health Check */ SELECT 1"
+
+  # the minimum number of connections to keep open
+  minSize: 8
+
+  # the maximum number of connections to keep open
+  maxSize: 32
+
+  # whether or not idle connections should be validated
+  checkConnectionWhileIdle: true
+
+  checkConnectionOnBorrow: true
+  
+  privateKeyFile: src/test/resources/private_key.der
+  publicKeyFile: src/test/resources/public_key.der
+  credentialServiceURL: https://credential-service.herokuapp.com/
+  refreshFrequency: 5
+  credentialClientConfiguration:
+    timeout: 1m
+    connectionTimeout: 1m
+  #retrieveCredentials: false
+
+server:
+  applicationConnectors:
+    - type: http
+      port: 8080
+  adminConnectors:
+    - type: http
+      port: 8081
+
+logging:
+  appenders:
+    - type: console
+      threshold: WARN
